@@ -10,7 +10,7 @@ import torch as th
 import torch.distributed as dist
 import torch.nn.functional as F
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
-from torch.optim import AdamW
+from torch.optim import RAdam
 
 from guided_diffusion import dist_util, logger
 from guided_diffusion.fp16_util import MixedPrecisionTrainer
@@ -29,7 +29,10 @@ def main():
     args = create_argparser().parse_args()
 
     dist_util.setup_dist()
-    logger.configure()
+    logger.configure(
+        dir='/data/guided_diffusion_data',
+        format_strs=['stdout', 'log', 'json', 'csv']
+    )
 
     logger.log("creating model and diffusion...")
     model, diffusion = create_classifier_and_diffusion(
@@ -89,7 +92,7 @@ def main():
         val_data = None
 
     logger.log(f"creating optimizer...")
-    opt = AdamW(mp_trainer.master_params, lr=args.lr, weight_decay=args.weight_decay)
+    opt = RAdam(mp_trainer.master_params, lr=args.lr, weight_decay=args.weight_decay)
     if args.resume_checkpoint:
         opt_checkpoint = bf.join(
             bf.dirname(args.resume_checkpoint), f"opt{resume_step:06}.pt"

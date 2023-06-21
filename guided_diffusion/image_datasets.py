@@ -6,6 +6,11 @@ import blobfile as bf
 from mpi4py import MPI
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
+import torch
+from torchvision import transforms as T
+from tqdm import tqdm
+from glob import glob
+import os
 
 
 def load_data(
@@ -38,7 +43,7 @@ def load_data(
     """
     if not data_dir:
         raise ValueError("unspecified data directory")
-    all_files = _list_image_files_recursively(data_dir)
+    all_files = glob(os.path.join(data_dir, 'train', '*.npz'))
     classes = None
     if class_cond:
         # Assume classes are the first part of the filename,
@@ -46,22 +51,17 @@ def load_data(
         class_names = [bf.basename(path).split("_")[0] for path in all_files]
         sorted_classes = {x: i for i, x in enumerate(sorted(set(class_names)))}
         classes = [sorted_classes[x] for x in class_names]
-    dataset = ImageDataset(
+    dataset = MiceDataset(
         image_size,
         all_files,
         classes=classes,
         shard=MPI.COMM_WORLD.Get_rank(),
         num_shards=MPI.COMM_WORLD.Get_size(),
-        random_crop=random_crop,
-        random_flip=random_flip,
+        aug=True
     )
     if deterministic:
         loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=True
-        )
-    else:
-        loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=True, num_workers=1, drop_last=True
+            dataset, batch_size=batch_size, shuffle=not deterministic, num_workers=4, drop_last=True
         )
     while True:
         yield from loader
@@ -165,3 +165,53 @@ def random_crop_arr(pil_image, image_size, min_crop_frac=0.8, max_crop_frac=1.0)
     crop_y = random.randrange(arr.shape[0] - image_size + 1)
     crop_x = random.randrange(arr.shape[1] - image_size + 1)
     return arr[crop_y : crop_y + image_size, crop_x : crop_x + image_size]
+
+
+class MiceDataset(Dataset):
+    def __init__(
+        self,
+        resolution,
+        paths,
+        shard=0,
+        num_shards=1,
+        aug=True,
+    ):
+        super().__init__()
+        self.resolution = resolution
+        self.paths = paths[shard:][::num_shards]
+
+        all_data = []
+        for path in tqdm(self.paths, total=len(self.paths)):
+            all_data.append(np.load(path)['gt'])
+
+        all_data = np.stack(all_data, axis=0)
+        self.local_images = all_data
+        self.aug = aug
+
+        self.augment_fn = T.Compose([
+            T.Resize([resolution, resolution], antialias=True),
+            T.RandomHorizontalFlip(0.5),
+            T.RandomVerticalFlip(0.5),
+            T.RandomRotation((-90, 90)),
+        ])
+
+    def __len__(self):
+        return len(self.local_images)
+
+    def __getitem__(self, idx):
+        img = self.local_images[idx, ...]
+        img = torch.from_numpy(img).float().unsqueeze(0)
+        img = self.min_max_scaler(img)
+
+        if self.aug:
+            img = self.augment_fn(img)
+
+        out_dict = {}
+
+        return img, out_dict
+    
+    def min_max_scaler(self, x):
+        x = x - x.min()
+        x = x / x.max()
+
+        return x
