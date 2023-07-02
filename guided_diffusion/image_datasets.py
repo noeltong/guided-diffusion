@@ -36,8 +36,6 @@ def load_data(
                        label. If classes are not available and this is true, an
                        exception will be raised.
     :param deterministic: if True, yield results in a deterministic order.
-    :param random_crop: if True, randomly crop the images for augmentation.
-    :param random_flip: if True, randomly flip the images for augmentation.
     """
     if not data_dir:
         raise ValueError("unspecified data directory")
@@ -52,15 +50,13 @@ def load_data(
     dataset = MiceDataset(
         image_size,
         all_files,
-        classes=classes,
         shard=MPI.COMM_WORLD.Get_rank(),
         num_shards=MPI.COMM_WORLD.Get_size(),
         aug=True
     )
-    if deterministic:
-        loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=not deterministic, num_workers=4, drop_last=True
-        )
+    loader = DataLoader(
+        dataset, batch_size=batch_size, shuffle=not deterministic, num_workers=4, drop_last=True
+    )
     while True:
         yield from loader
 
@@ -115,9 +111,11 @@ class ImageDataset(Dataset):
 
         arr = arr.astype(np.float32) / 127.5 - 1
 
-        out_dict = {}
-        if self.local_classes is not None:
-            out_dict["y"] = np.array(self.local_classes[idx], dtype=np.int64)
+        # out_dict = {}
+        # if self.local_classes is not None:
+        #     out_dict["y"] = np.array(self.local_classes[idx], dtype=np.int64)
+
+        out_dict = {"y": 0}
         return np.transpose(arr, [2, 0, 1]), out_dict
 
 
