@@ -254,7 +254,7 @@ def create_classifier(
 
     return EncoderUNetModel(
         image_size=image_size,
-        in_channels=3,
+        in_channels=1,
         model_channels=classifier_width,
         out_channels=1000,
         num_res_blocks=classifier_depth,
