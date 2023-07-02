@@ -13,7 +13,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim import RAdam
 
 import sys
-sys.path.append('/root/guided-diffusion')
+sys.path.append('/public/home/tongshq/guided-diffusion')
 from guided_diffusion import dist_util, logger
 from guided_diffusion.fp16_util import MixedPrecisionTrainer
 from guided_diffusion.image_datasets import load_data
@@ -32,7 +32,7 @@ def main():
 
     dist_util.setup_dist()
     logger.configure(
-        dir='/data/guided_diffusion_data/mice/train',
+        dir='/public/home/tongshq/guided-diffusion/workspace/train/mice',
         format_strs=['stdout', 'log', 'json', 'csv']
     )
 

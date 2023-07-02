@@ -111,11 +111,10 @@ class ImageDataset(Dataset):
 
         arr = arr.astype(np.float32) / 127.5 - 1
 
-        # out_dict = {}
-        # if self.local_classes is not None:
-        #     out_dict["y"] = np.array(self.local_classes[idx], dtype=np.int64)
+        out_dict = {}
+        if self.local_classes is not None:
+            out_dict["y"] = np.array(self.local_classes[idx], dtype=np.int64)
 
-        out_dict = {"y": 0}
         return np.transpose(arr, [2, 0, 1]), out_dict
 
 
@@ -177,7 +176,7 @@ class MiceDataset(Dataset):
         self.paths = paths[shard:][::num_shards]
 
         all_data = []
-        for path in tqdm(self.paths, total=len(self.paths)):
+        for path in self.paths:
             all_data.append(np.load(path)['gt'])
 
         all_data = np.stack(all_data, axis=0)
@@ -202,7 +201,7 @@ class MiceDataset(Dataset):
         if self.aug:
             img = self.augment_fn(img)
 
-        out_dict = {}
+        out_dict = {"y": 0}
 
         return img, out_dict
     
