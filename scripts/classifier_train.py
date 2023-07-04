@@ -32,7 +32,7 @@ def main():
 
     dist_util.setup_dist()
     logger.configure(
-        dir='/public/home/tongshq/guided-diffusion/workspace/train/mice',
+        dir='/public/home/tongshq/guided-diffusion/workspace/train/classifier',
         format_strs=['stdout', 'log', 'json', 'csv']
     )
 

@@ -11,6 +11,9 @@ import torch as th
 import torch.distributed as dist
 import torch.nn.functional as F
 
+import sys
+sys.path.append('/public/home/tongshq/guided-diffusion')
+
 from guided_diffusion import dist_util, logger
 from guided_diffusion.script_util import (
     NUM_CLASSES,
@@ -27,7 +30,10 @@ def main():
     args = create_argparser().parse_args()
 
     dist_util.setup_dist()
-    logger.configure()
+    logger.configure(
+        dir='/public/home/tongshq/guided-diffusion/workspace/sample/mice',
+        format_strs=['stdout', 'log', 'json', 'csv']
+    )
 
     logger.log("creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(

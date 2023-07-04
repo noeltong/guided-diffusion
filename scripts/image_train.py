@@ -20,7 +20,10 @@ def main():
     args = create_argparser().parse_args()
 
     dist_util.setup_dist()
-    logger.configure()
+    logger.configure(
+        dir='/public/home/tongshq/guided-diffusion/workspace/train/model',
+        format_strs=['stdout', 'log', 'json', 'csv']
+    )
 
     logger.log("creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(
