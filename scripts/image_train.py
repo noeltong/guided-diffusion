@@ -4,6 +4,9 @@ Train a diffusion model on images.
 
 import argparse
 
+import sys
+sys.path.append('/public/home/tongshq/guided-diffusion')
+
 from guided_diffusion import dist_util, logger
 from guided_diffusion.image_datasets import load_data
 from guided_diffusion.resample import create_named_schedule_sampler
