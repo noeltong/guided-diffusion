@@ -12,9 +12,10 @@
 #SBATCH --output=logs/%j.out
 #SBATCH --error=logs/%j.err
 #SBATCH --time=10-00:00:00
-#SBATCH --nodelist=sist_gpu62
+#SBATCH --nodelist=sist_gpu66
 
-TRAIN_FLAGS="--iterations 150000 --anneal_lr True --batch_size 64 --lr 2.5e-4 --save_interval 10000 --weight_decay 0.05"
-CLASSIFIER_FLAGS="--image_size 128 --classifier_attention_resolutions 32,16,8 --classifier_depth 2 --classifier_width 64 --classifier_pool attention --classifier_resblock_updown True --classifier_use_scale_shift_norm True --classifier_use_fp16 True"
+MODEL_FLAGS="--image_size 128 --num_channels 128 --num_res_blocks 2 --class_cond False"
+DIFFUSION_FLAGS="--diffusion_steps 800 --noise_schedule cosine --use_kl True"
+TRAIN_FLAGS="--lr 2.5e-4 --batch_size 32 --schedule_sampler loss-second-moment"
 
-mpiexec -n 4 --allow-run-as-root python scripts/classifier_train.py --data_dir /storage/data/tongshq/dataset/mice/npy $TRAIN_FLAGS $CLASSIFIER_FLAGS
+mpiexec -n 4 --allow-run-as-root python scripts/image_train.py --data_dir /storage/data/tongshq/dataset/mice/npy $MODEL_FLAGS $DIFFUSION_FLAGS $TRAIN_FLAGS
