@@ -14,6 +14,7 @@ from torch.optim import RAdam
 
 import sys
 sys.path.append('/public/home/tongshq/guided-diffusion')
+
 from guided_diffusion import dist_util, logger
 from guided_diffusion.fp16_util import MixedPrecisionTrainer
 from guided_diffusion.image_datasets import load_data
@@ -80,6 +81,7 @@ def main():
         data_dir=args.data_dir,
         batch_size=args.batch_size,
         image_size=args.image_size,
+        class_cond=True
     )
     if args.val_data_dir:
         val_data = load_data(

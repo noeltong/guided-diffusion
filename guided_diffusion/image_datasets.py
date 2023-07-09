@@ -52,7 +52,8 @@ def load_data(
         all_files,
         shard=MPI.COMM_WORLD.Get_rank(),
         num_shards=MPI.COMM_WORLD.Get_size(),
-        aug=True
+        aug=True,
+        class_cond=class_cond,
     )
     loader = DataLoader(
         dataset, batch_size=batch_size, shuffle=not deterministic, num_workers=2, drop_last=True
@@ -170,6 +171,7 @@ class MiceDataset(Dataset):
         shard=0,
         num_shards=1,
         aug=True,
+        class_cond=False
     ):
         super().__init__()
         self.resolution = resolution
@@ -182,6 +184,7 @@ class MiceDataset(Dataset):
         all_data = np.stack(all_data, axis=0)
         self.local_images = all_data
         self.aug = aug
+        self.class_cond = class_cond
 
         self.augment_fn = T.Compose([
             T.Resize([resolution, resolution], antialias=True),
@@ -201,7 +204,9 @@ class MiceDataset(Dataset):
         if self.aug:
             img = self.augment_fn(img)
 
-        out_dict = {"y": 0}
+        out_dict = {}
+        if self.class_cond:
+            out_dict = {"y": 0}
 
         return img, out_dict
     
