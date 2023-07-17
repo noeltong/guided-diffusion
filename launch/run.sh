@@ -8,7 +8,7 @@ mpiexec -n 4 --allow-run-as-root python scripts/classifier_train.py --data_dir /
 
 ############################# TRAIN MODEL ##############################
 
-MODEL_FLAGS="--image_size 128 --num_channels 128 --num_res_blocks 2 --class_cond False --class_cond False --ema_rate 0.999"
+MODEL_FLAGS="--image_size 128 --num_channels 128 --num_res_blocks 2 --class_cond False --ema_rate 0.999"
 DIFFUSION_FLAGS="--diffusion_steps 800 --noise_schedule cosine --use_kl True"
 TRAIN_FLAGS="--lr 2.5e-4 --batch_size 32 --schedule_sampler loss-second-moment"
 
