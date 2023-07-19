@@ -179,7 +179,7 @@ class MiceDataset(Dataset):
 
         all_data = []
         for path in self.paths:
-            all_data.append(np.load(path)['gt'])
+            all_data.append(self.min_max_scaler(np.load(path)['gt']))
 
         all_data = np.stack(all_data, axis=0)
         self.local_images = all_data
@@ -199,7 +199,6 @@ class MiceDataset(Dataset):
     def __getitem__(self, idx):
         img = self.local_images[idx, ...]
         img = torch.from_numpy(img).float().unsqueeze(0)
-        img = self.min_max_scaler(img)
 
         if self.aug:
             img = self.augment_fn(img)
@@ -207,6 +206,8 @@ class MiceDataset(Dataset):
         out_dict = {}
         if self.class_cond:
             out_dict = {"y": 0}
+
+        img = img / 0.5 - 1  # rescale data to [-1., 1.] for faster covnergence
 
         return img, out_dict
     
