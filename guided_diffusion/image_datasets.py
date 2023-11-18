@@ -18,6 +18,7 @@ def load_data(
     data_dir,
     batch_size,
     image_size,
+    dataset,
     class_cond=False,
     deterministic=False
 ):
@@ -40,21 +41,25 @@ def load_data(
     if not data_dir:
         raise ValueError("unspecified data directory")
     all_files = glob(os.path.join(data_dir, 'train', '*.npz'))
-    classes = None
-    if class_cond:
-        # Assume classes are the first part of the filename,
-        # before an underscore.
-        class_names = [bf.basename(path).split("_")[0] for path in all_files]
-        sorted_classes = {x: i for i, x in enumerate(sorted(set(class_names)))}
-        classes = [sorted_classes[x] for x in class_names]
-    dataset = MiceDataset(
-        image_size,
-        all_files,
-        shard=MPI.COMM_WORLD.Get_rank(),
-        num_shards=MPI.COMM_WORLD.Get_size(),
-        aug=True,
-        class_cond=class_cond,
-    )
+    if dataset == 'mice_image':
+        dataset = MiceDataset(
+            image_size,
+            all_files,
+            shard=MPI.COMM_WORLD.Get_rank(),
+            num_shards=MPI.COMM_WORLD.Get_size(),
+            aug=True,
+            class_cond=class_cond,
+        )
+    elif dataset == 'mice_sinogram':
+        dataset = SinogramDataset(
+            image_size,
+            all_files,
+            shard=MPI.COMM_WORLD.Get_rank(),
+            num_shards=MPI.COMM_WORLD.Get_size(),
+            aug=True,
+            class_cond=False
+        )
+
     loader = DataLoader(
         dataset, batch_size=batch_size, shuffle=not deterministic, num_workers=2, drop_last=True
     )
@@ -192,6 +197,54 @@ class MiceDataset(Dataset):
             T.RandomVerticalFlip(0.5),
             T.RandomRotation((-90, 90)),
         ])
+
+    def __len__(self):
+        return len(self.local_images)
+
+    def __getitem__(self, idx):
+        img = self.local_images[idx, ...]
+        img = torch.from_numpy(img).float().unsqueeze(0)
+
+        if self.aug:
+            img = self.augment_fn(img)
+
+        out_dict = {}
+        if self.class_cond:
+            out_dict = {"y": 0}
+
+        img = img / 0.5 - 1  # rescale data to [-1., 1.] for faster covnergence
+
+        return img, out_dict
+    
+    def min_max_scaler(self, x):
+        x = x - x.min()
+        x = x / x.max()
+
+        return x
+    
+
+class SinogramDataset(Dataset):
+    def __init__(
+        self,
+        resolution,
+        paths,
+        shard=0,
+        num_shards=1,
+        aug=True,
+        class_cond=False
+    ):
+        super().__init__()
+        self.resolution = [int(x) for x in resolution.split(',')]
+        self.paths = paths[shard:][::num_shards]
+
+        all_data = []
+        for path in self.paths:
+            all_data.append(self.min_max_scaler(np.load(path)['gt']))
+
+        all_data = np.stack(all_data, axis=0)
+        self.local_images = all_data
+        self.aug = aug
+        self.class_cond = class_cond
 
     def __len__(self):
         return len(self.local_images)

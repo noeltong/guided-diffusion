@@ -3,6 +3,7 @@ Train a diffusion model on images.
 """
 
 import argparse
+from torch import nn
 
 import sys
 sys.path.append('/public/home/tongshq/guided-diffusion')
@@ -32,6 +33,7 @@ def main():
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
+    model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
     model.to(dist_util.dev())
     schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion)
 
